@@ -1,41 +1,66 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- * @flow
- */
-
 import React, { Component } from 'react';
-import {
-  AppRegistry,
-  StyleSheet,
-  Text,
-  View
-} from 'react-native';
+import {AppRegistry, StyleSheet, View} from 'react-native';
 import MapView from 'react-native-maps';
 
-export default class mapMarkers extends Component {
-  state = {
-    initialPosition: {
-      latitude: -33.861189, // hardcode to Tiong Bahru chicken rice
-      longitude: 151.210835,
-      accuracy: 100,
+const RESTAURANTS = [
+  {
+    key: 'Cafe Sydney',
+    title: 'Cafe Sydney',
+    description: 'Customs House, 31 Alfred St, Sydney NSW 2000',
+    latLong: {
+      latitude: -33.861924,
+      longitude: 151.210891,
     },
+  },
+  {
+    key: 'Four Frogs Creperie',
+    title: 'Four Frogs Creperie',
+    description: '1 Macquarie Pl, Sydney NSW 2000',
+    latLong: {
+      latitude: -33.861755,
+      longitude: 151.209941,
+    },
+  },
+  {
+    key: 'Tapavino',
+    title: 'Tapavino',
+    description: '6 Bulletin Pl, Sydney NSW 2000',
+    latLong: {
+      latitude: -33.862512,
+      longitude: 151.209490,
+    },
+  },
+];
+
+const marker = require('./assets/images/marker.png');
+const selectedMarker = require('./assets/images/marker-selected.png');
+
+export default class MapMarkers extends Component {
+  state = {
+    region: {
+      latitude: 1,
+      longitude: 1,
+      latitudeDelta: 0.0043, // hardcode zoom levels just for example
+      longitudeDelta: 0.0034,
+    },
+    selectedMarkerIndex: 0,
   };
+
+  constructor(props) {
+    super(props);
+    this.onPressMarker = this.onPressMarker.bind(this);
+  }
 
   componentDidMount() {
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const {coords} = position;
-        this.setState({
-          initialPosition: {
-            latitude: coords.latitude,
-            longitude: coords.longitude,
-            accuracy: coords.accuracy,
-          }
-        })
-      },
-      (error) => alert(JSON.stringify(error)),
-      {
+      position => this.setState({
+        region: {
+          ...this.state.region,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        }
+      }),
+      error => alert(JSON.stringify(error)), {
         enableHighAccuracy: true,
         timeout: 20000,
         maximumAge: 1000
@@ -43,32 +68,34 @@ export default class mapMarkers extends Component {
     );
   }
 
-  // Ripped from https://github.com/airbnb/react-native-maps/issues/505
-  regionFrom(lat, lon, accuracy) {
-    const oneDegreeOfLongitudeInMeters = 111.32 * 1000;
-    const circumference = (40075 / 360) * 1000;
-
-    const accuracyZoomedOut = accuracy * 40;
-    const latDelta = accuracyZoomedOut * (1 / (Math.cos(lat) * circumference));
-    const lonDelta = (accuracyZoomedOut / oneDegreeOfLongitudeInMeters);
-
-    return {
-      latitude: lat,
-      longitude: lon,
-      latitudeDelta: Math.max(0, latDelta),
-      longitudeDelta: Math.max(0, lonDelta)
-    };
+  onPressMarker(e, index) {
+    console.log(`marker pressed! ${e}, markerIndex: ${index}`);
+    this.setState({selectedMarkerIndex: index});
   }
 
+  // note that you need to style the map, otherwise you'll get
+  // a blank screen
   render() {
-    const {initialPosition: {longitude, latitude, accuracy}} = this.state;
-    const initialRegion = this.regionFrom(latitude, longitude, accuracy);
-
     return (
       <View style={styles.root}>
         <MapView style={styles.map}
                  showsUserLocation={true}
-                 initialRegion={initialRegion}/>
+                 followsUserLocation={true}
+                 initialRegion={this.state.region}
+        >
+          {
+            RESTAURANTS.map((r, i) => {
+              return <MapView.Marker
+                coordinate={r.latLong}
+                title={r.title}
+                description={r.description}
+                key={`marker-${i}`}
+                onPress={e => this.onPressMarker(e, i)}
+                image={this.state.selectedMarkerIndex === i ? selectedMarker : marker}
+              />
+            })
+          }
+        </MapView>
       </View>
     );
   }
@@ -89,4 +116,4 @@ const styles = StyleSheet.create({
   },
 });
 
-AppRegistry.registerComponent('mapMarkers', () => mapMarkers);
+AppRegistry.registerComponent('mapMarkers', () => MapMarkers);
